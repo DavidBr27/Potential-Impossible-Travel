@@ -4,8 +4,8 @@
 
 
 ## 📝 **Explanation**  
-Corporations often have strict policies prohibiting:  
-- 🌍 Logging in from multiple geographic regions outside designated areas.  
+Organizations typically enforce strict policies against:  
+- 🌍 Logins from multiple geographical areas outside of permitted zones. 
 - 🔄 Account sharing (a standard security measure).  
 - 🛡️ Using non-corporate VPNs.  
 
