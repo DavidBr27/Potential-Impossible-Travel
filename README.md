@@ -1,6 +1,7 @@
 # 🚨 Incident Report: Create Alert Rule (Potential Impossible Travel) 🚨
 
-![image (10)](https://github.com/user-attachments/assets/0549c26d-254c-424c-8d17-a24e4819b9f3)
+![image](https://github.com/user-attachments/assets/1619d03b-412c-4b5c-9b7a-5aee6e1f4fb7)
+
 
 ## 📝 **Explanation**  
 Corporations often have strict policies prohibiting:  
@@ -13,7 +14,7 @@ This scenario detects unusual activity, such as logins from **multiple geographi
 Whenever a user logs into Azure or authenticates with their main Azure account, logs are created in the **"SigninLogs"** table and forwarded to the **Log Analytics workspace** used by Microsoft Sentinel (our SIEM).  
 
 ### **Detection Objective:**  
-Trigger an alert in Sentinel if a user logs into more than **one location** within a 7-day time period. Not all alerts will indicate malicious activity, as some may be false positives.  
+Trigger an alert in Sentinel if a user logs into more than **three locations** within a 7-day time period. Not all alerts will indicate malicious activity, as some may be false positives.  
 
 ---
 
@@ -29,34 +30,35 @@ Set up a Sentinel **Scheduled Query Rule** in Log Analytics to detect users logg
 
 ```kql
 DeviceFileEvents
-| top 20 by Timestamp desc
+| top 20 by TimeGenerated desc
 ```
 ```kql
 DeviceNetworkEvents
-| top 20 by Timestamp desc
+| top 20 by TimeGenerated desc
 ```
 ```kql
 DeviceProcessEvents
-| top 20 by Timestamp desc
+| top 20 by TimeGenerated desc
 ``` 
 ```kql
 let TimePeriodThreshold = timespan(7d);
-let NumberOfDifferentLocationAllowed = 1;
+let NumberOfDifferentLocationAllowed = 3;
 SigninLogs
 | where TimeGenerated > ago(TimePeriodThreshold)
 | summarize count() by UserPrincipalName, City = tostring(parse_json(LocationDetails).city), State = tostring(parse_json(LocationDetails).state), Country = tostring(parse_json(LocationDetails).countryOrRegion)
 | project UserPrincipalName, City, State, Country
 | summarize PotentialImpossibleTravelInstances = count() by UserPrincipalName
 | where PotentialImpossibleTravelInstances > NumberOfDifferentLocationAllowed
+| order by PotentialImpossibleTravelInstances desc
 ```
-![Screenshot 2025-01-08 105713](https://github.com/user-attachments/assets/1934650d-0b0c-47c6-a3a8-c45d8d8eadb0)
+![image](https://github.com/user-attachments/assets/028db60d-0a62-4436-8341-2bd96b4a7a0f)
 
 3. **Analytics Rule Settings:**  
    - **Name:** Potential Impossible Travel Alert  
    - **Description:** Detects logins from multiple geographic regions.  
    - ✅ Enable the Rule.  
    - 🔄 Run Query Every 4 Hours.  
-   - 📅 Lookup Data for the Last 24 Hours.  
+   - 📅 Lookup Data for the Last 7 Days.  
    - ❌ Stop Running Query After Alert is Generated.  
 
 4. **Entity Mappings:**  
@@ -82,11 +84,13 @@ SigninLogs
    | project TimeGenerated, UserPrincipalName, UserId, City, State, Country
    | order by TimeGenerated desc
    ```
-![Screenshot 2025-01-08 121358](https://github.com/user-attachments/assets/2739121d-5914-4468-a480-cecee0883432)
+
+![image](https://github.com/user-attachments/assets/42a967ab-080e-4661-9d8b-b4dec9a6b7de)
+
 
    **Observed Findings:**  
-   - **Account 1:** Logins from 3 nearby locations within 4 days. No unusual behavior.  
-   - **Account 2:** Logins from 4 locations within 7 days. All locations were within a 2-hour train ride.  
+   - **Account 1:** Logins from 7 nearby locations within 7 days. No unusual behavior.  
+   - **Account 2:** Logins from 6 locations within 7 days. All locations were within a 3-hour train ride.  
 
 ---
 
